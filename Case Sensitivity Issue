@@ -1,0 +1,28 @@
+import os
+from zenml import Client
+from zenml.stack import StackExistsError
+
+def rename_stack_with_case(client: Client, old_name: str, new_name: str) -> None:
+    """
+    Rename a ZenML stack, handling case-only differences safely.
+    """
+    # If the names differ only by casing:
+    if old_name.lower() == new_name.lower() and old_name != new_name:
+        # choose an intermediate alias
+        tmp_name = f"{old_name}_temp_rename"
+        # Step 1: rename to temp
+        client.stack.rename_stack(old_name, tmp_name)
+        # Step 2: rename temp to desired new_name
+        client.stack.rename_stack(tmp_name, new_name)
+    else:
+        # normal rename
+        client.stack.rename_stack(old_name, new_name)
+
+    # Optionally, verify references:
+    updated = client.stack.get_stack(new_name)
+    if updated.name != new_name:
+        raise RuntimeError("Rename did not fully apply.")
+
+# Usage
+client = Client()
+rename_stack_with_case(client, "MyStack", "mystack")
